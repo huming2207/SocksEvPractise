@@ -1,0 +1,8 @@
+//
+// Created by hu on 12/19/17.
+//
+
+#ifndef SOCKSEVPRACTISE_CLIENT_H
+#define SOCKSEVPRACTISE_CLIENT_H
+
+#endif //SOCKSEVPRACTISE_CLIENT_H
