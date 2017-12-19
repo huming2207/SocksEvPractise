@@ -7,13 +7,13 @@
 
 #include "common.h"
 
-struct ev_io * event_list[WORKING_CLIENT_COUNT] = {NULL};
 
 void server_init();
-void server_read_cb(struct ev_loop * loop, ev_io * io_watcher, int revents);
+void server_action_cb(struct ev_loop * loop, ev_io * io_watcher, int revents);
 void server_accept_cb(struct ev_loop * loop, ev_io * io_watcher, int revents);
 void server_write_file_cb(struct ev_loop * loop, ev_periodic * timer_watcher, int revents);
+void server_event_cleanup(struct ev_loop * loop, int fd);
 
-
+char * save_buffer;
 
 #endif //SOCKSEVPRACTISE_SERVER_H

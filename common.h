@@ -13,6 +13,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <ev.h>
+#include <errno.h>
 
 enum working_mode {
     CLIENT_MODE,
@@ -22,6 +23,8 @@ enum working_mode {
 #define WORKING_PORT            12000
 #define WORKING_CLIENT_COUNT    512
 #define STRING_BUFFER_SIZE      3072
+#define SOCKS_LOG_FILE          "telnet.log"
+
 
 
 
