@@ -21,6 +21,13 @@ void server_init()
     struct ev_io *socket_watcher = (struct ev_io*)malloc(sizeof(struct ev_io));
     struct ev_periodic *periodic_watcher = (struct ev_periodic*)malloc(sizeof(struct ev_periodic));
 
+    // Allocate memory for save_buffer
+    if(!(save_buffer = malloc(STRING_BUFFER_SIZE))){
+        fprintf(stderr, "save_buffer: cannot allocate memory: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+
     // Register socket
     int socket_ref = socket(PF_INET, SOCK_STREAM, 0);
 
@@ -64,12 +71,6 @@ void server_init()
         exit(EXIT_FAILURE);
     }
 #endif
-
-    // Allocate memory for save_buffer
-    if(!(save_buffer = malloc(STRING_BUFFER_SIZE))){
-        fprintf(stderr, "save_buffer: cannot allocate memory: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
 
     // Register periodic logging events
     ev_periodic_init(periodic_watcher, server_write_file_cb, 0., 5., 0);
