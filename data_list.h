@@ -11,7 +11,8 @@
 // Add 3 more spaces for '\0', '\n' and '\r'.
 #define EXTRA_STRING_SPACES     3
 
-typedef struct _data_node {
+typedef struct _data_node
+{
     char * data;
     struct _data_node * next_node;
 } data_node;

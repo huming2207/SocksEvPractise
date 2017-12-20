@@ -27,20 +27,19 @@ void server_init()
     // Initialise watchers
     struct ev_io *socket_watcher = (struct ev_io*)malloc(sizeof(struct ev_io));
     struct ev_periodic *periodic_watcher = (struct ev_periodic*)malloc(sizeof(struct ev_periodic));
+    struct sockaddr_in sock_addr;
 
     // Register socket
-    int socket_ref = socket(PF_INET, SOCK_STREAM, 0);
+    int socket_fd = socket(PF_INET, SOCK_STREAM, 0);
 
     // If failed, exit.
-    if(socket_ref < 0) {
+    if(socket_fd < 0) {
         fprintf(stderr, "Socket: register failed, check your permission first.\n");
         exit(EXIT_FAILURE);
     }
 
-
     // Prepare server address info, wipe it in case something weird happens
-    struct sockaddr_in sock_addr;
-    bzero(&sock_addr, sizeof(struct sockaddr_in));
+    memset(&sock_addr, 0, sizeof(struct sockaddr_in));
 
     // Fill in the address
     sock_addr.sin_family      = AF_INET;
@@ -48,25 +47,25 @@ void server_init()
     sock_addr.sin_addr.s_addr = INADDR_ANY;
 
     // Here we go: start to bind
-    if(bind(socket_ref, (struct sockaddr *) &sock_addr, sizeof(sock_addr)) != 0){
+    if(bind(socket_fd, (struct sockaddr *) &sock_addr, sizeof(sock_addr)) != 0){
         fprintf(stderr, "Bind: bind failed, try again later: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
     // Here we go: start to listen
-    if(listen(socket_ref, SOMAXCONN) != 0){
+    if(listen(socket_fd, SOMAXCONN) != 0){
         fprintf(stderr, "Listen: listen failed, try again later: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
     // Reuse socket reference
 #ifndef SO_REUSEPORT
-    if(setsockopt(socket_ref, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0){
+    if(setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0){
         fprintf(stderr, "setsockopt: Reuse socket (SO_REUSEADDR) failed: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 #else
-    if(setsockopt(socket_ref, SOL_SOCKET, SO_REUSEPORT, &(int){1}, sizeof(int)) < 0){
+    if(setsockopt(socket_fd, SOL_SOCKET, SO_REUSEPORT, &(int){1}, sizeof(int)) < 0){
         fprintf(stderr, "setsockopt: Reuse socket (SO_REUSEADDR) failed: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
@@ -77,7 +76,7 @@ void server_init()
     ev_periodic_start(loop, periodic_watcher);
 
     // Register socket events
-    ev_io_init(socket_watcher, server_accept_cb, socket_ref, EV_READ);
+    ev_io_init(socket_watcher, server_accept_cb, socket_fd, EV_READ);
     ev_io_start(loop, socket_watcher);
 
     // Run the loop
@@ -161,7 +160,7 @@ void server_action_cb(struct ev_loop * loop, ev_io * io_watcher, int revents)
     }
 
     // Print when data is received
-    printf("Receive: got message from client with length %zd: %s", read_fd, client_buffer);
+    printf("Receive: got message from client: %s\n", client_buffer);
 
     // Send the echo back to client user
     ssize_t send_fd = send(io_watcher->fd, client_buffer, STRING_BUFFER_SIZE, 0);
@@ -195,7 +194,7 @@ void server_write_file_cb(struct ev_loop * loop, ev_periodic * timer_watcher, in
     char * data;
 
     if(!file){
-        fprintf(stderr, "File: open failed: %s", strerror(errno));
+        fprintf(stderr, "File: open failed: %s\n", strerror(errno));
     }
 
     // Write the data list to file and clear it up
@@ -203,7 +202,7 @@ void server_write_file_cb(struct ev_loop * loop, ev_periodic * timer_watcher, in
 
         // Copy the data
         data = data_list_dequeue();
-        printf("[DEBUG] Writting to file: %s", data);
+        printf("[DEBUG] Writting to file: %s\n", data);
         fprintf(file, "%s", data);
     }
 
