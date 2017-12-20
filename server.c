@@ -12,8 +12,8 @@
  */
 struct ev_io * event_list[WORKING_CLIENT_COUNT] = {NULL};
 
-void server_init(){
-
+void server_init()
+{
     // Create a default event loop
     struct ev_loop *loop = EV_DEFAULT;
 
@@ -79,14 +79,13 @@ void server_init(){
     ev_io_init(socket_watcher, server_accept_cb, socket_ref, EV_READ);
     ev_io_start(loop, socket_watcher);
 
-    // Endlessly gets user query
-    while(true)
-        ev_run(loop, 0);
+    // Run the loop
+    ev_run(loop, 0);
 
 }
 
-void server_accept_cb(struct ev_loop * loop, ev_io * io_watcher, int revents){
-
+void server_accept_cb(struct ev_loop * loop, ev_io * io_watcher, int revents)
+{
     // Declare client user's address
     struct sockaddr_in client_addr;
     socklen_t socket_size = sizeof(client_addr);
@@ -108,26 +107,27 @@ void server_accept_cb(struct ev_loop * loop, ev_io * io_watcher, int revents){
     }
 
     // Accept the client
-    int client_ref = accept(io_watcher->fd, (struct sockaddr *) &client_addr, &socket_size);
+    int client_fd = accept(io_watcher->fd, (struct sockaddr *) &client_addr, &socket_size);
 
-    if(client_ref < 0){
+    if(client_fd < 0){
         fprintf(stderr, "Accept: cannot accept the client: %s\n", strerror(errno));
         return;
     }
 
-    if(client_ref > WORKING_CLIENT_COUNT){
-        fprintf(stderr, "Accept: client_ref is too large, too many connections: %s\n", strerror(errno));
+    if(client_fd > WORKING_CLIENT_COUNT){
+        fprintf(stderr, "Accept: client_fd is too large, too many connections: %s\n", strerror(errno));
         return;
     }
 
     // Initialise the action (r/w) event, listen, then read/write to client
-    ev_io_init(client_watcher, server_action_cb, client_ref, EV_READ);
+    ev_io_init(client_watcher, server_action_cb, client_fd, EV_READ);
     ev_io_start(loop, client_watcher);
 
-    event_list[client_ref] = client_watcher;
+    event_list[client_fd] = client_watcher;
 }
 
-void server_action_cb(struct ev_loop * loop, ev_io * io_watcher, int revents){
+void server_action_cb(struct ev_loop * loop, ev_io * io_watcher, int revents)
+{
 
     // Declare client buffer and wipe it before use
     char * client_buffer = malloc(STRING_BUFFER_SIZE);
@@ -146,13 +146,13 @@ void server_action_cb(struct ev_loop * loop, ev_io * io_watcher, int revents){
     }
 
     // Here we go, start to read.
-    ssize_t read_ref = recv(io_watcher->fd, client_buffer, STRING_BUFFER_SIZE, 0);
+    ssize_t read_fd = recv(io_watcher->fd, client_buffer, STRING_BUFFER_SIZE, 0);
 
-    if(read_ref < 0){
+    if(read_fd < 0){
         fprintf(stderr, "Recv: data receive failed\n");
         free(client_buffer);
         return;
-    } else if(read_ref == 0) {
+    } else if(read_fd == 0) {
         fprintf(stderr, "Recv: client disconnected.\n");
         free(client_buffer);
         server_event_cleanup(loop, io_watcher->fd);
@@ -160,16 +160,16 @@ void server_action_cb(struct ev_loop * loop, ev_io * io_watcher, int revents){
     }
 
     // Print when data is received
-    printf("Receive: got message from client with length %zd: %s", read_ref, client_buffer);
+    printf("Receive: got message from client with length %zd: %s", read_fd, client_buffer);
 
     // Send the echo back to client user
-    ssize_t send_ref = send(io_watcher->fd, client_buffer, STRING_BUFFER_SIZE, 0);
+    ssize_t send_fd = send(io_watcher->fd, client_buffer, STRING_BUFFER_SIZE, 0);
 
-    if(send_ref < 0){
+    if(send_fd < 0){
         fprintf(stderr, "Send: data receive failed: %s\n", strerror(errno));
         free(client_buffer);
         return;
-    } else if(send_ref == 0) {
+    } else if(send_fd == 0) {
         fprintf(stderr, "Send: client disconnected: %s\n", strerror(errno));
         free(client_buffer);
         server_event_cleanup(loop, io_watcher->fd);
@@ -183,7 +183,8 @@ void server_action_cb(struct ev_loop * loop, ev_io * io_watcher, int revents){
 
 }
 
-void server_write_file_cb(struct ev_loop * loop, ev_periodic * timer_watcher, int revents){
+void server_write_file_cb(struct ev_loop * loop, ev_periodic * timer_watcher, int revents)
+{
 
     // Open file, with append mode
     FILE * file = fopen(SOCKS_LOG_FILE, "a+");
@@ -201,18 +202,19 @@ void server_write_file_cb(struct ev_loop * loop, ev_periodic * timer_watcher, in
     memset(save_buffer, '\0', STRING_BUFFER_SIZE);
 }
 
-void server_event_cleanup(struct ev_loop * loop, int ref){
+void server_event_cleanup(struct ev_loop * loop, int ref)
+{
 
     if(!event_list[ref]){
         printf("free: client has been freed.\n");
         return;
     }
 
-    // Close this event first
-    close(ref);
-    ev_io_stop(loop, event_list[ref]);
-
     // Free up memory
     event_list[ref] = NULL;
     free(event_list[ref]);
+
+    // Close this event first
+    close(ref);
+    ev_io_stop(loop, event_list[ref]);
 }
