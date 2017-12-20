@@ -18,15 +18,6 @@ bool data_list_enqueue(char *data)
 {
     // New node to add
     data_node * new_node;
-    new_node = NULL;
-
-    // Check the data first, don't let junk in
-    if(!data){
-        fprintf(stderr, "data_list_enqueue: failed to add data as it is not correctly initialised.");
-        return false;
-    }
-
-    // Initialise the new node
     new_node = malloc(sizeof(data_node));
 
     // Check the malloc result
@@ -51,8 +42,7 @@ bool data_list_enqueue(char *data)
     if(!first_node) {
 
         // Put the new node to the first node and last node
-        first_node = new_node;
-        last_node = first_node;
+        first_node = last_node = new_node;
 
         // Initialise the counter
         data_node_count = 0;
@@ -80,11 +70,6 @@ char * data_list_dequeue()
     char * data = malloc(strlen(first_node->data) + EXTRA_STRING_SPACES);
     data_node * second_node;
 
-    if(!data) {
-        fprintf(stderr, "data_list_enqueue: failed to initialise the node: %s", strerror(errno));
-        return false;
-    }
-
     // Grab the first node's data to the data buffer
     strcpy(data, first_node->data);
 
@@ -105,7 +90,6 @@ char * data_list_dequeue()
 
     // Set the counter
     data_node_count -= 1;
-
 
     return data;
 }
