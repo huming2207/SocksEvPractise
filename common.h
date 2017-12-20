@@ -5,16 +5,6 @@
 #ifndef SOCKSEVPRACTISE_COMMON_H
 #define SOCKSEVPRACTISE_COMMON_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <ev.h>
-#include <errno.h>
-
 enum working_mode {
     CLIENT_MODE,
     SERVER_MODE

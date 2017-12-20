@@ -2,8 +2,14 @@
 // Created by hu on 12/19/17.
 //
 
+#include <sys/socket.h>
+#include <stdio.h>
+#include <netinet/in.h>
+#include <errno.h>
+#include <zconf.h>
 #include "server.h"
 #include "data_list.h"
+#include "common.h"
 
 /**
  * Initialise the server mode
@@ -67,7 +73,7 @@ void server_init()
 #endif
 
     // Register periodic logging events
-    ev_periodic_init(periodic_watcher, server_write_file_cb, 0, 5, 0);
+    ev_periodic_init(periodic_watcher, server_write_file_cb, 0, 5., 0);
     ev_periodic_start(loop, periodic_watcher);
 
     // Register socket events

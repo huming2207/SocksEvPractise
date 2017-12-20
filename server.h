@@ -5,8 +5,7 @@
 #ifndef SOCKSEVPRACTISE_SERVER_H
 #define SOCKSEVPRACTISE_SERVER_H
 
-#include "common.h"
-
+#include <ev.h>
 
 void server_init();
 void server_action_cb(struct ev_loop * loop, ev_io * io_watcher, int revents);
