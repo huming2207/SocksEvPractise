@@ -1,6 +1,7 @@
 #include "server.h"
 
-int main(int argc, char ** argv) {
+int main(int argc, char ** argv)
+{
 
     server_init();
 

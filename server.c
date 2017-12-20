@@ -3,6 +3,7 @@
 //
 
 #include "server.h"
+#include "data_list.h"
 
 /**
  * Initialise the server mode
@@ -20,13 +21,6 @@ void server_init()
     // Initialise watchers
     struct ev_io *socket_watcher = (struct ev_io*)malloc(sizeof(struct ev_io));
     struct ev_periodic *periodic_watcher = (struct ev_periodic*)malloc(sizeof(struct ev_periodic));
-
-    // Allocate memory for save_buffer
-    if(!(save_buffer = malloc(STRING_BUFFER_SIZE))){
-        fprintf(stderr, "save_buffer: cannot allocate memory: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
 
     // Register socket
     int socket_ref = socket(PF_INET, SOCK_STREAM, 0);
@@ -73,7 +67,7 @@ void server_init()
 #endif
 
     // Register periodic logging events
-    ev_periodic_init(periodic_watcher, server_write_file_cb, 0., 5., 0);
+    ev_periodic_init(periodic_watcher, server_write_file_cb, 0, 5, 0);
     ev_periodic_start(loop, periodic_watcher);
 
     // Register socket events
@@ -177,8 +171,11 @@ void server_action_cb(struct ev_loop * loop, ev_io * io_watcher, int revents)
         return;
     }
 
-    // Copy the buffer to save_buffer and free up client_buffer
-    strcpy(save_buffer, client_buffer);
+    // Add data to the queue
+    if(!data_list_enqueue(client_buffer)) {
+
+        fprintf(stderr, "enqueue: enqueue failed, reason: %s", strerror(errno));
+    }
 
     free(client_buffer);
 
@@ -189,18 +186,24 @@ void server_write_file_cb(struct ev_loop * loop, ev_periodic * timer_watcher, in
 
     // Open file, with append mode
     FILE * file = fopen(SOCKS_LOG_FILE, "a+");
+    char * data;
 
     if(!file){
         fprintf(stderr, "File: open failed: %s", strerror(errno));
     }
 
-    // Write, flush, close
-    fprintf(file, "%s", save_buffer);
+    // Write the data list to file and clear it up
+    while(data_node_count != 0) {
+
+        // Copy the data
+        data = data_list_dequeue();
+        printf("[DEBUG] Writting to file: %s", data);
+        fprintf(file, "%s", data);
+    }
+
+    // Flush then close
     fflush(file);
     fclose(file);
-
-    // Wipe the string buffer
-    memset(save_buffer, '\0', STRING_BUFFER_SIZE);
 }
 
 void server_event_cleanup(struct ev_loop * loop, int ref)
@@ -212,10 +215,9 @@ void server_event_cleanup(struct ev_loop * loop, int ref)
     }
 
     // Free up memory
+    ev_io_stop(loop, event_list[ref]);
     event_list[ref] = NULL;
     free(event_list[ref]);
-
-    // Close this event first
     close(ref);
-    ev_io_stop(loop, event_list[ref]);
+
 }
