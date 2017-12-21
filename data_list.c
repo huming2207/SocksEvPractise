@@ -77,11 +77,12 @@ char * data_list_dequeue()
     // Mark the first node's next node (second node)
     second_node = first_node->next_node;
 
-    if(data_node_count < 1) {
+    if(data_node_count == 0) {
 
         // Free up the first node and the last node
         free(first_node);
         free(last_node);
+
     } else {
 
         // Free the original first node and put the second node to the first node
