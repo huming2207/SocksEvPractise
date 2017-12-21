@@ -1,5 +1,5 @@
-#include <stdlib.h>
 #include "server.h"
+#include <stdlib.h>
 
 int main(int argc, char ** argv)
 {

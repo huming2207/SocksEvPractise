@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-// Add 3 more spaces for '\0', '\n' and '\r'.
-#define EXTRA_STRING_SPACES     3
+// Add 1 more spaces for '\0'.
+#define EXTRA_STRING_SPACES     1
 
 typedef struct _data_node
 {
@@ -17,14 +17,10 @@ typedef struct _data_node
     struct _data_node * next_node;
 } data_node;
 
-data_node * first_node;
-data_node * last_node;
-int data_node_count;
+static int data_node_count;
 
 bool data_list_enqueue(char *data);
 char * data_list_dequeue();
-char * get_first_node();
-char * get_last_node();
 
 
 

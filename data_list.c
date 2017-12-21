@@ -1,11 +1,15 @@
 //
 // Created by hu on 12/20/17.
 //
-
+#include "data_list.h"
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
-#include "data_list.h"
+
+
+static data_node * first_node;
+static data_node * last_node;
+
 
 /**
  * Enqueue data to the queue, i.e. add new node to the last_node.
@@ -19,14 +23,6 @@ bool data_list_enqueue(char *data)
     // New node to add
     data_node * new_node;
     new_node = malloc(sizeof(data_node));
-
-    // Check the malloc result
-    if(!new_node) {
-        fprintf(stderr, "data_list_enqueue: failed to initialise the node: %s", strerror(errno));
-        return false;
-    }
-
-    // Initialise the string buffer inside the node
     new_node->data = malloc(strlen(data) + EXTRA_STRING_SPACES);
 
     // Check the data malloc result
@@ -43,9 +39,6 @@ bool data_list_enqueue(char *data)
 
         // Put the new node to the first node and last node
         first_node = last_node = new_node;
-
-        // Initialise the counter
-        data_node_count = 0;
 
     } else {
 
@@ -67,8 +60,16 @@ bool data_list_enqueue(char *data)
  */
 char * data_list_dequeue()
 {
-    char * data = malloc(strlen(first_node->data) + EXTRA_STRING_SPACES);
+    char * data;
     data_node * second_node;
+
+    // When there is no data node left,  stop here and return null
+    if(data_node_count <= 0 || !first_node) {
+        return NULL;
+    }
+
+    // Allocate dequeue buffer
+    data = malloc(strlen(first_node->data) + EXTRA_STRING_SPACES);
 
     // Grab the first node's data to the data buffer
     strcpy(data, first_node->data);
@@ -92,14 +93,4 @@ char * data_list_dequeue()
     data_node_count -= 1;
 
     return data;
-}
-
-char * get_first_node()
-{
-    return first_node->data;
-}
-
-char * get_last_node()
-{
-    return last_node->data;
 }

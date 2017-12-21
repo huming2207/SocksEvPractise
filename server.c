@@ -1,15 +1,15 @@
 //
 // Created by hu on 12/19/17.
 //
-
-#include <sys/socket.h>
-#include <stdio.h>
-#include <netinet/in.h>
-#include <errno.h>
-#include <zconf.h>
 #include "server.h"
 #include "data_list.h"
 #include "common.h"
+
+#include <stdio.h>
+#include <errno.h>
+#include <zconf.h>
+
+#include <netinet/in.h>
 
 /**
  * Initialise the server mode
@@ -21,16 +21,19 @@ struct ev_io * event_list[WORKING_CLIENT_COUNT] = {NULL};
 
 void server_init()
 {
-    // Create a default event loop
-    struct ev_loop *loop = EV_DEFAULT;
-
-    // Initialise watchers
-    struct ev_io *socket_watcher = (struct ev_io*)malloc(sizeof(struct ev_io));
-    struct ev_periodic *periodic_watcher = (struct ev_periodic*)malloc(sizeof(struct ev_periodic));
+    // Declare something
+    struct ev_loop * loop = EV_DEFAULT;
+    struct ev_io * socket_watcher;
+    struct ev_periodic * periodic_watcher;
     struct sockaddr_in sock_addr;
+    int socket_fd;
+    int socket_opt_enable;
 
-    // Register socket
-    int socket_fd = socket(PF_INET, SOCK_STREAM, 0);
+    // Initialise something
+    loop = EV_DEFAULT;
+    socket_watcher = malloc(sizeof(struct ev_io));
+    periodic_watcher = malloc(sizeof(struct ev_periodic));
+    socket_fd = socket(PF_INET, SOCK_STREAM, 0);
 
     // If failed, exit.
     if(socket_fd < 0) {
@@ -59,13 +62,15 @@ void server_init()
     }
 
     // Reuse socket reference
+    socket_opt_enable = 1;
+
 #ifndef SO_REUSEPORT
-    if(setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0){
+    if(setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &socket_opt_enable, sizeof(socket_opt_enable)) < 0){
         fprintf(stderr, "setsockopt: Reuse socket (SO_REUSEADDR) failed: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 #else
-    if(setsockopt(socket_fd, SOL_SOCKET, SO_REUSEPORT, &(int){1}, sizeof(int)) < 0){
+    if(setsockopt(socket_fd, SOL_SOCKET, SO_REUSEPORT, &socket_opt_enable, sizeof(socket_opt_enable)) < 0){
         fprintf(stderr, "setsockopt: Reuse socket (SO_REUSEADDR) failed: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
@@ -86,16 +91,18 @@ void server_init()
 
 void server_accept_cb(struct ev_loop * loop, ev_io * io_watcher, int revents)
 {
-    // Declare client user's address
+    // Declare something
+    int client_fd;
     struct sockaddr_in client_addr;
+    struct ev_io * client_watcher;
+
     socklen_t socket_size = sizeof(client_addr);
 
-
     // Initialise client event watcher
-    struct ev_io * client_watcher = (struct ev_io *)malloc(sizeof(struct ev_io));
+    client_watcher = malloc(sizeof(struct ev_io));
 
     // Detect if malloc failed
-    if(!client_watcher){
+    if(!client_watcher) {
         fprintf(stderr, "malloc: cannot allocate memory for client event watcher: %s\n", strerror(errno));
         return;
     }
@@ -107,7 +114,7 @@ void server_accept_cb(struct ev_loop * loop, ev_io * io_watcher, int revents)
     }
 
     // Accept the client
-    int client_fd = accept(io_watcher->fd, (struct sockaddr *) &client_addr, &socket_size);
+    client_fd = accept(io_watcher->fd, (struct sockaddr *) &client_addr, &socket_size);
 
     if(client_fd < 0){
         fprintf(stderr, "Accept: cannot accept the client: %s\n", strerror(errno));
@@ -115,7 +122,7 @@ void server_accept_cb(struct ev_loop * loop, ev_io * io_watcher, int revents)
     }
 
     if(client_fd > WORKING_CLIENT_COUNT){
-        fprintf(stderr, "Accept: client_fd is too large, too many connections: %s\n", strerror(errno));
+        fprintf(stderr, "Accept: too many connections.\n");
         return;
     }
 
@@ -129,9 +136,13 @@ void server_accept_cb(struct ev_loop * loop, ev_io * io_watcher, int revents)
 void server_action_cb(struct ev_loop * loop, ev_io * io_watcher, int revents)
 {
 
-    // Declare client buffer and wipe it before use
-    char * client_buffer = malloc(STRING_BUFFER_SIZE);
-    memset(client_buffer, '\0', STRING_BUFFER_SIZE);
+    // Declare something
+    char * client_buffer;
+    ssize_t read_fd;
+    ssize_t send_fd;
+
+    // Initialise client buffer
+    client_buffer = calloc(STRING_BUFFER_SIZE, sizeof(char));
 
     // Detect if malloc failed
     if(!client_buffer){
@@ -141,15 +152,15 @@ void server_action_cb(struct ev_loop * loop, ev_io * io_watcher, int revents)
 
     // Detect if event register failed
     if (EV_ERROR & revents) {
-        fprintf(stderr, "Event: cannot register the event: %s\n", strerror(errno));
+        fprintf(stderr, "Event: cannot register the event\n");
         return;
     }
 
     // Here we go, start to read.
-    ssize_t read_fd = recv(io_watcher->fd, client_buffer, STRING_BUFFER_SIZE, 0);
+    read_fd = recv(io_watcher->fd, client_buffer, STRING_BUFFER_SIZE, 0);
 
     if(read_fd < 0){
-        fprintf(stderr, "Recv: data receive failed\n");
+        fprintf(stderr, "Recv: data receive failed, reason: %s\n", strerror(errno));
         free(client_buffer);
         return;
     } else if(read_fd == 0) {
@@ -163,14 +174,14 @@ void server_action_cb(struct ev_loop * loop, ev_io * io_watcher, int revents)
     printf("Receive: got message from client: %s\n", client_buffer);
 
     // Send the echo back to client user
-    ssize_t send_fd = send(io_watcher->fd, client_buffer, STRING_BUFFER_SIZE, 0);
+    send_fd = send(io_watcher->fd, client_buffer, STRING_BUFFER_SIZE, 0);
 
     if(send_fd < 0){
-        fprintf(stderr, "Send: data receive failed: %s\n", strerror(errno));
+        fprintf(stderr, "Send: data send failed, reason: %s\n", strerror(errno));
         free(client_buffer);
         return;
     } else if(send_fd == 0) {
-        fprintf(stderr, "Send: client disconnected: %s\n", strerror(errno));
+        fprintf(stderr, "Send: client disconnected!\n");
         free(client_buffer);
         server_event_cleanup(loop, io_watcher->fd);
         return;
@@ -179,7 +190,7 @@ void server_action_cb(struct ev_loop * loop, ev_io * io_watcher, int revents)
     // Add data to the queue
     if(!data_list_enqueue(client_buffer)) {
 
-        fprintf(stderr, "enqueue: enqueue failed, reason: %s", strerror(errno));
+        fprintf(stderr, "enqueue: enqueue failed!\n");
     }
 
     free(client_buffer);
@@ -194,7 +205,7 @@ void server_write_file_cb(struct ev_loop * loop, ev_periodic * timer_watcher, in
     char * data;
 
     if(!file){
-        fprintf(stderr, "File: open failed: %s\n", strerror(errno));
+        fprintf(stderr, "File: open failed, reason: %s\n", strerror(errno));
     }
 
     // Write the data list to file and clear it up
@@ -202,8 +213,15 @@ void server_write_file_cb(struct ev_loop * loop, ev_periodic * timer_watcher, in
 
         // Copy the data
         data = data_list_dequeue();
-        printf("[DEBUG] Writting to file: %s\n", data);
-        fprintf(file, "%s", data);
+
+        if(!data) {
+            printf("[DEBUG] No item left in the queue!\n");
+        } else {
+            printf("[DEBUG] Writting to file: %s\n", data);
+            fprintf(file, "%s", data);
+        }
+
+
     }
 
     // Flush then close
@@ -213,7 +231,7 @@ void server_write_file_cb(struct ev_loop * loop, ev_periodic * timer_watcher, in
 
 void server_event_cleanup(struct ev_loop * loop, int ref)
 {
-
+    // If this item has been freed, stop here.
     if(!event_list[ref]){
         printf("free: client has been freed.\n");
         return;
