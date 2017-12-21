@@ -7,8 +7,9 @@
 #include <errno.h>
 
 
-static data_node * first_node;
-static data_node * last_node;
+static data_node *first_node;
+
+static data_node *last_node;
 
 
 /**
@@ -20,37 +21,37 @@ static data_node * last_node;
  */
 bool data_list_enqueue(char *data)
 {
-    // New node to add
-    data_node * new_node;
-    new_node = malloc(sizeof(data_node));
-    new_node->data = malloc(strlen(data) + EXTRA_STRING_SPACES);
+  // New node to add
+  data_node *new_node;
+  new_node = malloc(sizeof(data_node));
+  new_node->data = malloc(strlen(data) + EXTRA_STRING_SPACES);
 
-    // Check the data malloc result
-    if(!new_node->data) {
-        fprintf(stderr, "data_list_enqueue: failed to initialise the node: %s", strerror(errno));
-        return false;
-    }
+  // Check the data malloc result
+  if (!new_node->data) {
+    fprintf(stderr, "data_list_enqueue: failed to initialise the node: %s", strerror(errno));
+    return false;
+  }
 
-    // Wipe the data and copy
-    strcpy(new_node->data, data);
+  // Wipe the data and copy
+  strcpy(new_node->data, data);
 
-    // Initialise the first node if it's null
-    if(!first_node) {
+  // Initialise the first node if it's null
+  if (!first_node) {
 
-        // Put the new node to the first node and last node
-        first_node = last_node = new_node;
+    // Put the new node to the first node and last node
+    first_node = last_node = new_node;
 
-    } else {
+  } else {
 
-        // Link the last_node to new node
-        last_node->next_node = new_node;
-        last_node = new_node;
+    // Link the last_node to new node
+    last_node->next_node = new_node;
+    last_node = new_node;
 
-        // Increase 1 to the counter
-        data_node_count += 1;
-    }
+    // Increase 1 to the counter
+    data_node_count += 1;
+  }
 
-    return true;
+  return true;
 
 }
 
@@ -58,40 +59,41 @@ bool data_list_enqueue(char *data)
  * Dequeue one item from the queue, i.e. grab the first_node and delete it, then put the second one to the first_node
  * @return string in the first item
  */
-char * data_list_dequeue()
+char *data_list_dequeue()
 {
-    char * data;
-    data_node * second_node;
 
-    // When there is no data node left,  stop here and return null
-    if(data_node_count <= 0 || !first_node) {
-        return NULL;
-    }
+  char *data;
+  data_node *second_node;
 
-    // Allocate dequeue buffer
-    data = malloc(strlen(first_node->data) + EXTRA_STRING_SPACES);
+  // When there is no data node left,  stop here and return null
+  if (data_node_count <= 0 || !first_node) {
+    return NULL;
+  }
 
-    // Grab the first node's data to the data buffer
-    strcpy(data, first_node->data);
+  // Allocate dequeue buffer
+  data = malloc(strlen(first_node->data) + EXTRA_STRING_SPACES);
 
-    // Mark the first node's next node (second node)
-    second_node = first_node->next_node;
+  // Grab the first node's data to the data buffer
+  strcpy(data, first_node->data);
 
-    if(data_node_count == 0) {
+  // Mark the first node's next node (second node)
+  second_node = first_node->next_node;
 
-        // Free up the first node and the last node
-        free(first_node);
-        free(last_node);
+  if (data_node_count == 0) {
 
-    } else {
+    // Free up the first node and the last node
+    free(first_node);
+    free(last_node);
 
-        // Free the original first node and put the second node to the first node
-        free(first_node);
-        first_node = second_node;
-    }
+  } else {
 
-    // Set the counter
-    data_node_count -= 1;
+    // Free the original first node and put the second node to the first node
+    free(first_node);
+    first_node = second_node;
+  }
 
-    return data;
+  // Set the counter
+  data_node_count -= 1;
+
+  return data;
 }

@@ -13,15 +13,14 @@
 
 typedef struct _data_node
 {
-    char * data;
-    struct _data_node * next_node;
+  char *data;
+  struct _data_node *next_node;
 } data_node;
 
 static int data_node_count;
 
 bool data_list_enqueue(char *data);
-char * data_list_dequeue();
 
-
+char *data_list_dequeue();
 
 #endif //SOCKSEVPRACTISE_DATA_LIST_H

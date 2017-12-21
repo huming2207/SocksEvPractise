@@ -1,11 +1,12 @@
 #include "server.h"
 #include <stdlib.h>
 
-int main(int argc, char ** argv)
+
+int main(int argc, char **argv)
 {
 
-    server_init();
+  server_init();
 
-    return EXIT_SUCCESS;
+  return EXIT_SUCCESS;
 
 }
