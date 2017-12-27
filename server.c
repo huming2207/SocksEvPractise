@@ -2,7 +2,6 @@
 // Created by hu on 12/19/17.
 //
 #include "server.h"
-#include "data_list.h"
 #include "common.h"
 
 #include <stdio.h>
@@ -10,6 +9,7 @@
 #include <zconf.h>
 
 #include <netinet/in.h>
+#include <stdlib.h>
 
 
 /**
@@ -19,13 +19,15 @@
  * socket ==> bind ==> listen ==> accept (event) ==> read & write (event) => close
  */
 struct ev_io *event_list[WORKING_CLIENT_COUNT] = {NULL};
+char *client_buffer;
+char input_char;
 
 void server_init()
 {
   // Declare something
   struct ev_loop *loop = EV_DEFAULT;
   struct ev_io *socket_watcher;
-  struct ev_periodic *periodic_watcher;
+  struct ev_io *input_watcher;
   struct sockaddr_in sock_addr;
   int socket_fd;
   int socket_opt_enable;
@@ -33,12 +35,24 @@ void server_init()
   // Initialise something
   loop = EV_DEFAULT;
   socket_watcher = malloc(sizeof(struct ev_io));
-  periodic_watcher = malloc(sizeof(struct ev_periodic));
+  input_watcher = malloc(sizeof(struct ev_io));
 
-  if (!socket_watcher || !periodic_watcher) {
+  // Prepare server address info, wipe it in case something weird happens
+  memset(&sock_addr, 0, sizeof(struct sockaddr_in));
+
+  if (!socket_watcher) {
     fprintf(stderr, "init: failed to allocate memory, reason: %s\n", strerror(errno));
-
   }
+
+  // Initialise client buffer
+  client_buffer = calloc(STRING_BUFFER_SIZE, sizeof(char));
+
+  // Detect if malloc failed
+  if (!client_buffer) {
+    fprintf(stderr, "malloc: cannot allocate memory for client buffer: %s\n", strerror(errno));
+    return;
+  }
+
 
   // Register socket
   socket_fd = socket(PF_INET, SOCK_STREAM, 0);
@@ -48,9 +62,6 @@ void server_init()
     fprintf(stderr, "Socket: register failed, check your permission first.\n");
     exit(EXIT_FAILURE);
   }
-
-  // Prepare server address info, wipe it in case something weird happens
-  memset(&sock_addr, 0, sizeof(struct sockaddr_in));
 
   // Fill in the address
   sock_addr.sin_family = AF_INET;
@@ -84,13 +95,14 @@ void server_init()
   }
 #endif
 
-  // Register periodic logging events
-  ev_periodic_init(periodic_watcher, server_write_file_cb, 0, 5., 0);
-  ev_periodic_start(loop, periodic_watcher);
 
-  // Register socket events
+  // Register socket event
   ev_io_init(socket_watcher, server_accept_cb, socket_fd, EV_READ);
   ev_io_start(loop, socket_watcher);
+
+  // Register input event
+  ev_io_init(input_watcher, user_input_callback, STDIN_FILENO, EV_READ);
+  ev_io_start(loop, input_watcher);
 
   // Run the loop
   ev_run(loop, 0);
@@ -144,19 +156,8 @@ void server_accept_cb(struct ev_loop *loop, ev_io *io_watcher, int revents)
 void server_action_cb(struct ev_loop *loop, ev_io *io_watcher, int revents)
 {
 
-  // Declare something
-  char *client_buffer;
   ssize_t read_fd;
   ssize_t send_fd;
-
-  // Initialise client buffer
-  client_buffer = calloc(STRING_BUFFER_SIZE, sizeof(char));
-
-  // Detect if malloc failed
-  if (!client_buffer) {
-    fprintf(stderr, "malloc: cannot allocate memory for client buffer: %s\n", strerror(errno));
-    return;
-  }
 
   // Detect if event register failed
   if (EV_ERROR & revents) {
@@ -178,9 +179,6 @@ void server_action_cb(struct ev_loop *loop, ev_io *io_watcher, int revents)
     return;
   }
 
-  // Print when data is received
-  printf("Receive: got message from client: %s\n", client_buffer);
-
   // Send the echo back to client user
   send_fd = send(io_watcher->fd, client_buffer, STRING_BUFFER_SIZE, 0);
 
@@ -195,46 +193,10 @@ void server_action_cb(struct ev_loop *loop, ev_io *io_watcher, int revents)
     return;
   }
 
-  // Add data to the queue
-  if (!data_list_enqueue(client_buffer)) {
-
-    fprintf(stderr, "enqueue: enqueue failed!\n");
-  }
-
-  free(client_buffer);
+  send_counter += 1;
 
 }
 
-void server_write_file_cb(struct ev_loop *loop, ev_periodic *timer_watcher, int revents)
-{
-
-  // Open file, with append mode
-  FILE *file = fopen(SOCKS_LOG_FILE, "a+");
-  char *data;
-
-  if (!file) {
-    fprintf(stderr, "File: open failed, reason: %s\n", strerror(errno));
-  }
-
-  // Write the data list to file and clear it up
-  while (data_node_count != 0) {
-
-    // Copy the data
-    data = data_list_dequeue();
-
-    if (!data) {
-      printf("[DEBUG] No item left in the queue!\n");
-    } else {
-      printf("[DEBUG] Writting to file: %s\n", data);
-      fprintf(file, "%s", data);
-    }
-
-  }
-
-  // Flush then close
-  fflush(file);
-  fclose(file);
-}
 
 void server_event_cleanup(struct ev_loop *loop, int ref)
 {
@@ -250,4 +212,22 @@ void server_event_cleanup(struct ev_loop *loop, int ref)
   free(event_list[ref]);
   close(ref);
 
+}
+
+void user_input_callback(struct ev_loop *loop, int revent)
+{
+
+  input_char = (char)fgetc(stdin);
+
+  switch(input_char)
+  {
+    case 's': {
+      printf("[Stat] Already sent %lu times!\n", send_counter);
+      break;
+    }
+
+    default: {
+      break;
+    }
+  }
 }
