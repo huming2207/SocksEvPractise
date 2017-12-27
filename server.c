@@ -84,7 +84,7 @@ void server_init()
   socket_opt_enable = 1;
 
 #ifndef SO_REUSEPORT
-  if(setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &socket_opt_enable, sizeof(socket_opt_enable)) < 0){
+  if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &socket_opt_enable, sizeof(socket_opt_enable)) == -1){
       fprintf(stderr, "setsockopt: Reuse socket (SO_REUSEADDR) failed: %s\n", strerror(errno));
       exit(EXIT_FAILURE);
   }
@@ -174,7 +174,6 @@ void server_action_cb(struct ev_loop *loop, ev_io *io_watcher, int revents)
     return;
   } else if (read_fd == 0) {
     fprintf(stderr, "Recv: client disconnected.\n");
-    free(client_buffer);
     server_event_cleanup(loop, io_watcher->fd);
     return;
   }
@@ -188,7 +187,6 @@ void server_action_cb(struct ev_loop *loop, ev_io *io_watcher, int revents)
     return;
   } else if (send_fd == 0) {
     fprintf(stderr, "Send: client disconnected!\n");
-    free(client_buffer);
     server_event_cleanup(loop, io_watcher->fd);
     return;
   }
