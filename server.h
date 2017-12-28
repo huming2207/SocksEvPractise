@@ -18,6 +18,9 @@ void server_event_cleanup(struct ev_loop *loop, int fd);
 
 void user_input_callback(struct ev_loop *loop, int revent);
 
-static unsigned long send_counter;
+void server_save_callback(struct ev_loop *loop, ev_io *watcher, int revent);
+
+static unsigned long long send_counter;
+static unsigned long long save_counter;
 
 #endif //SOCKSEVPRACTISE_SERVER_H
